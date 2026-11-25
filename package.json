@@ -1,5 +1,5 @@
 {
-  "name": "tavily-proxy-cloudflare",
+  "name": "tavily-proxy",
   "version": "1.0.0",
   "description": "Tavily MCP proxy on Cloudflare Workers with API key pool",
   "main": "src/index.ts",
