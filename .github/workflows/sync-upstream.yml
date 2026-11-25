@@ -26,9 +26,11 @@ jobs:
           git fetch upstream main
 
           if [ -z "$(git merge-base HEAD upstream/main 2>/dev/null)" ]; then
-            echo "::notice::与上游无共同历史，仅同步 src/ 目录"
-            git checkout upstream/main -- src
-            git commit -m "chore: sync src from upstream" || exit 0
+            echo "::notice::与上游无共同历史，按文件同步源码"
+            for f in src package.json package-lock.json tsconfig.json; do
+              git checkout upstream/main -- "$f" 2>/dev/null || true
+            done
+            git commit -m "chore: sync source from upstream" || exit 0
           else
             git merge -X ours upstream/main --no-edit
           fi
