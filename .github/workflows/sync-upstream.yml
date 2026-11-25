@@ -1,0 +1,49 @@
+name: Sync upstream
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Merge upstream
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/sunwu51/tavily-proxy.git
+          git fetch upstream main
+
+          if [ -z "$(git merge-base HEAD upstream/main 2>/dev/null)" ]; then
+            echo "::notice::与上游无共同历史，仅同步 src/ 目录"
+            git checkout upstream/main -- src
+            git commit -m "chore: sync src from upstream" || exit 0
+          else
+            git merge -X ours upstream/main --no-edit
+          fi
+
+      - name: Verify Cloudflare config untouched
+        run: |
+          if grep -q '8c9031329f264adb85952b069e2b5cce' wrangler.toml; then
+            echo "::error::KV namespace id 已被上游覆盖，中止，不推送"
+            exit 1
+          fi
+          if ! grep -q 'tavily-proxy-cloudflare' wrangler.toml; then
+            echo "::error::worker name 被改写，中止，不推送"
+            exit 1
+          fi
+          echo "配置完好，KV id 仍为本地值"
+
+      - name: Push
+        run: git push origin main
